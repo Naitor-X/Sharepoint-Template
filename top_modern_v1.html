@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startseite Top Cards - Modern Glasmorphism</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #f4f8fb 0%, #e8f0f9 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(16, 65, 102, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(22, 82, 124, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .card-container {
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 0;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      padding: 25px;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(16, 65, 102, 0.05) 0%, rgba(22, 82, 124, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+    }
+
+    .card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      border-color: rgba(16, 65, 102, 0.3);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-icon {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      object-fit: cover;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      display: block;
+      transition: all 0.4s ease;
+      border: 3px solid rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(5px);
+    }
+
+    .card:hover .card-icon {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 
+        0 15px 40px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      border-color: rgba(16, 65, 102, 0.3);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #104166;
+      margin-bottom: 15px;
+      text-align: center;
+      line-height: 1.4;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.3px;
+    }
+
+    .card-info-list {
+      margin: 0;
+      width: 100%;
+      padding: 0;
+      color: #555;
+      font-size: 13px;
+      list-style: none;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card-info-list li {
+      margin-bottom: 8px;
+      word-break: break-word;
+      position: relative;
+      padding-left: 25px;
+      line-height: 1.5;
+      transition: all 0.3s ease;
+    }
+
+    .card-info-list li:before {
+      content: "✦";
+      color: #104166;
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 14px;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    .card:hover .card-info-list li {
+      transform: translateX(3px);
+      color: #333;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .card-container {
+        padding: 15px;
+      }
+      
+      .card-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .card {
+        min-height: 250px;
+        padding: 20px;
+      }
+      
+      .card-icon {
+        width: 70px;
+        height: 70px;
+      }
+      
+      .card-title {
+        font-size: 15px;
+      }
+      
+      .card-info-list {
+        font-size: 12px;
+      }
+    }
+
+    /* Accessibility */
+    .card:focus {
+      outline: 2px solid #104166;
+      outline-offset: 2px;
+    }
+
+    /* Loading Animation */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      font-size: 16px;
+      color: #104166;
+    }
+
+    .loading::after {
+      content: '';
+      width: 20px;
+      height: 20px;
+      border: 2px solid #104166;
+      border-top: 2px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card-container">
+    <div class="card-row" id="cardRow">
+      <div class="loading">Lade Daten...</div>
+    </div>
+  </div>
+  
+  <script>
+    // SharePoint REST API URL (aus link.txt)
+    const listUrl = "https://vorarlberg.polizei.intra.gv.at/fbinfo/lka/OSEneu/Lists/zz_config_startseite_top";
+    // Felder, die abgefragt werden sollen
+    const fields = [
+      "CardPosition",
+      "Icon",
+      "Title",
+      "Informationen",
+      "Hyperlink"
+    ];
+
+    // Hilfsfunktion: SharePoint REST-API-URL für List Items
+    function getItemsUrl() {
+      const base = (typeof _spPageContextInfo !== "undefined" && _spPageContextInfo.webAbsoluteUrl)
+        ? _spPageContextInfo.webAbsoluteUrl
+        : listUrl.split('/Lists/')[0];
+      // Dynamisch, falls _spPageContextInfo verfügbar ist
+      return `${base}/_api/web/lists/GetByTitle('zz_config_startseite_top')/items?$select=${fields.join(',')}&$orderby=CardPosition`;
+    }
+
+    // Daten holen und Cards rendern
+    async function loadCards() {
+      try {
+        const url = getItemsUrl();
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "same-origin",
+          headers: {
+            "Accept": "application/json;odata=verbose"
+          }
+        });
+        if (!response.ok) throw new Error("Fehler beim Laden der Daten");
+        const data = await response.json();
+        const items = data.d && data.d.results ? data.d.results : [];
+        renderCards(items);
+      } catch (err) {
+        document.getElementById('cardRow').innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; color: #c00; font-weight: bold; padding: 20px; background: rgba(255, 255, 255, 0.8); border-radius: 15px; backdrop-filter: blur(10px);">
+            Fehler beim Laden der Cards: ${err.message}
+          </div>`;
+      }
+    }
+
+    // Hilfsfunktion: Titel mit Zeilenumbruch bei Klammern formatieren
+    function formatTitle(title) {
+      if (!title || typeof title !== "string") return title;
+      // Zeilenumbruch vor öffnender Klammer einfügen
+      return title.replace(/\s*(\([^)]*\))\s*$/, '<br>$1');
+    }
+
+    // Cards rendern mit Stagger-Animation
+    function renderCards(items) {
+      const row = document.getElementById('cardRow');
+      row.innerHTML = '';
+      
+      items.forEach((item, index) => {
+        // Icon-URL aus SharePoint Link/Bild-Spalte extrahieren
+        let iconUrl = "";
+        if (item.Icon) {
+          if (typeof item.Icon === "object" && item.Icon.Url) {
+            iconUrl = item.Icon.Url.trim();
+          } else if (typeof item.Icon === "string" && item.Icon.trim() !== "") {
+            iconUrl = item.Icon.trim();
+          }
+        }
+        
+        // Hyperlink prüfen
+        let linkUrl = item.Hyperlink;
+        if (linkUrl && typeof linkUrl === "object" && linkUrl.Url) linkUrl = linkUrl.Url;
+        if (!linkUrl || linkUrl === "-") linkUrl = "#";
+
+        // Informationen als Liste
+        let infoList = [];
+        if (item.Informationen && typeof item.Informationen === "string") {
+          infoList = item.Informationen
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean);
+        }
+
+        // Titel formatieren
+        const formattedTitle = formatTitle(item.Title || '');
+
+        // Card-HTML
+        const card = document.createElement('a');
+        card.className = 'card';
+        card.href = linkUrl;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.title = item.Title || '';
+        card.tabIndex = 0;
+        card.style.animationDelay = `${index * 0.1}s`;
+
+        // Card-Inhalt
+        card.innerHTML = `
+          <img class="card-icon" src="${iconUrl || ''}" alt="Icon" onerror="this.style.display='none'">
+          <div class="card-title">${formattedTitle}</div>
+          <ul class="card-info-list">
+            ${infoList.map(line => `<li>${line}</li>`).join('')}
+          </ul>
+        `;
+        
+        row.appendChild(card);
+        
+        // Stagger-Animation
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+    }
+
+    // Initial laden
+    loadCards();
+  </script>
+</body>
+</html> 

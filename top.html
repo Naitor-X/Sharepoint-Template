@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Startseite Top Cards</title>
+  <style>
+    body {
+      background: #f4f8fb;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .card-row {
+      display: flex;
+      flex-direction: row;
+      gap: 15px;
+      padding: 15px;
+      box-sizing: border-box;
+      justify-content: flex-start;
+      flex-wrap: nowrap;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .card {
+      background: #fff;
+      border: 2px solid #104166;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      flex: 1 1 0;
+      min-width: 180px;
+      aspect-ratio: 8.7/5.4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      box-sizing: border-box;
+      margin-bottom: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card:hover {
+      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+      transform: translateY(-2px) scale(1.03);
+      border-color: #16527c;
+    }
+    .card-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+      object-fit: cover;
+      margin-bottom: 20px;
+      background: #fff;
+      display: block;
+      transition: box-shadow 0.3s;
+      aspect-ratio: 1/1;
+    }
+    .card:hover .card-icon {
+      box-shadow: 4px 4px 15px rgba(0,0,0,0.2);
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #104166;
+      margin-bottom: 15px;
+      text-align: center;
+      padding: 5px 15px;
+      border-radius: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card-info-list {
+      margin-top: 5px;
+      width: 100%;
+      padding-left: 0;
+      padding-right: 10px;
+      padding-bottom: 10px;
+      color: #555;
+      font-size: 12px;
+      list-style: none;
+      margin-bottom: 0;
+    }
+    .card-info-list li {
+      margin-bottom: 6px;
+      word-break: break-word;
+      position: relative;
+      padding-left: 20px;
+    }
+    .card-info-list li:before {
+      content: "•";
+      color: #104166;
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    @media (max-width: 1100px) {
+      .card-row {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .card {
+        flex: 1 1 90vw;
+        min-width: 180px;
+        max-width: 350px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card-row" id="cardRow"></div>
+  <script>
+    // SharePoint REST API URL (aus link.txt)
+    const listUrl = "https://vorarlberg.polizei.intra.gv.at/fbinfo/lka/OSEneu/Lists/zz_config_startseite_top";
+    // Felder, die abgefragt werden sollen
+    const fields = [
+      "CardPosition",
+      "Icon",
+      "Title",
+      "Informationen",
+      "Hyperlink"
+    ];
+
+    // Hilfsfunktion: SharePoint REST-API-URL für List Items
+    function getItemsUrl() {
+      const base = (typeof _spPageContextInfo !== "undefined" && _spPageContextInfo.webAbsoluteUrl)
+        ? _spPageContextInfo.webAbsoluteUrl
+        : listUrl.split('/Lists/')[0];
+      // Dynamisch, falls _spPageContextInfo verfügbar ist
+      return `${base}/_api/web/lists/GetByTitle('zz_config_startseite_top')/items?$select=${fields.join(',')}&$orderby=CardPosition`;
+    }
+
+    // Daten holen und Cards rendern
+    async function loadCards() {
+      try {
+        const url = getItemsUrl();
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "same-origin",
+          headers: {
+            "Accept": "application/json;odata=verbose"
+          }
+        });
+        if (!response.ok) throw new Error("Fehler beim Laden der Daten");
+        const data = await response.json();
+        const items = data.d && data.d.results ? data.d.results : [];
+        renderCards(items);
+      } catch (err) {
+        document.getElementById('cardRow').innerHTML = `<div style="color:#c00;font-weight:bold;">Fehler beim Laden der Cards: ${err.message}</div>`;
+      }
+    }
+
+    // Hilfsfunktion: Titel mit Zeilenumbruch bei Klammern formatieren
+    function formatTitle(title) {
+      if (!title || typeof title !== "string") return title;
+      // Zeilenumbruch vor öffnender Klammer einfügen
+      return title.replace(/\s*(\([^)]*\))\s*$/, '<br>$1');
+    }
+
+    // Cards rendern
+    function renderCards(items) {
+      const row = document.getElementById('cardRow');
+      row.innerHTML = '';
+      items.forEach(item => {
+        // Icon-URL aus SharePoint Link/Bild-Spalte extrahieren
+        let iconUrl = "";
+        if (item.Icon) {
+          if (typeof item.Icon === "object" && item.Icon.Url) {
+            // SharePoint Link/Bild-Spalte gibt Objekt mit Url-Eigenschaft zurück
+            iconUrl = item.Icon.Url.trim();
+          } else if (typeof item.Icon === "string" && item.Icon.trim() !== "") {
+            // Falls es doch nur ein String ist
+            iconUrl = item.Icon.trim();
+          }
+        }
+        // Hyperlink prüfen
+        let linkUrl = item.Hyperlink;
+        if (linkUrl && typeof linkUrl === "object" && linkUrl.Url) linkUrl = linkUrl.Url;
+        if (!linkUrl || linkUrl === "-") linkUrl = "#";
+
+        // Informationen als Liste - verschiedene Zeilenumbruch-Formate berücksichtigen
+        let infoList = [];
+        if (item.Informationen && typeof item.Informationen === "string") {
+          // Verschiedene Zeilenumbruch-Formate berücksichtigen: \r\n, \n, \r
+          infoList = item.Informationen
+            .replace(/\r\n/g, '\n')  // Windows-Format
+            .replace(/\r/g, '\n')    // Mac-Format
+            .split('\n')
+            .map(s => s.trim())
+            .filter(Boolean);
+        }
+
+        // Titel formatieren
+        const formattedTitle = formatTitle(item.Title || '');
+
+        // Card-HTML
+        const card = document.createElement('a');
+        card.className = 'card';
+        card.href = linkUrl;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.title = item.Title || '';
+        card.tabIndex = 0;
+
+        // Card-Inhalt
+        card.innerHTML = `
+          <img class="card-icon" src="${iconUrl || ''}" alt="Icon" onerror="this.style.display='none'">
+          <div class="card-title">${formattedTitle}</div>
+          <ul class="card-info-list">
+            ${infoList.map(line => `<li>${line}</li>`).join('')}
+          </ul>
+        `;
+        row.appendChild(card);
+      });
+    }
+
+    // Initial laden
+    loadCards();
+  </script>
+</body>
+</html>
