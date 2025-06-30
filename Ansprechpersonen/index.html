@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ansprechpersonen</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f8fb;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    .webpart {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 300px;
+      margin: auto;
+      box-sizing: border-box;
+    }
+
+    #ansprechpersonen-department-header {
+      padding: 5px 5px;
+      margin-bottom: 5px;
+      margin-top: 5px;
+      font-weight: bold !important;
+    }
+
+    #ansprechpersonen-department-header:first-child {
+      margin-top: 0;
+    }
+
+    #ansprechpersonen-department-header h2 {
+      margin: 0 !important;
+      font-size: 16px !important;
+      font-weight: bold !important;
+      color: #104166 !important;
+    }
+
+    .contact-card {
+      background: #f4f8fb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 3px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .contact-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .contact-header {
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      padding-left: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .contact-header:hover {
+      background: #f9fafc;
+    }
+
+    .contact-header img {
+      width: 60px;
+      height: 80px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-right: 15px;
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .contact-header img:hover {
+      box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .contact-info {
+      flex: 1;
+    }
+
+    .contact-info h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: #104166;
+    }
+
+    .contact-info span {
+      font-size: 12px;
+      color: #555;
+    }
+
+    .contact-details {
+      padding: 0 15px 15px;
+      display: none;
+      font-size: 14px;
+      color: #333333;
+    }
+
+    .contact-details a {
+      color: #104166;
+      text-decoration: none;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .contact-details a:hover {
+      color: #16527c;
+    }
+
+    .contact-details div {
+      margin-bottom: 5px;
+    }
+
+    .expanded .contact-details {
+      display: block;
+    }
+
+    .toggle-indicator {
+      font-size: 1.2rem;
+      color: #104166;
+      margin-left: 15px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .expanded .toggle-indicator {
+      transform: rotate(180deg);
+    }
+
+    .error-message {
+      background: #ffebee;
+      border: 1px solid #f44336;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      color: #c62828;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .loading-message {
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      color: #1976d2;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .validation-message {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      color: #856404;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="webpart" id="contactWebpart">
+    <div class="loading-message">Lade Ansprechpersonen...</div>
+  </div>
+
+  <script>
+    const container = document.getElementById("contactWebpart");
+    const fallbackImage = "https://vorarlberg.polizei.intra.gv.at/service1/Foto/fallback.jpg";
+
+    // Funktion zum Abrufen der Request Digest
+    async function getRequestDigest() {
+      try {
+        const siteUrl = getSiteUrl();
+        const response = await fetch(`${siteUrl}/_api/contextinfo`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose'
+          },
+          credentials: 'same-origin'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.d.GetContextWebInformation.FormDigestValue;
+      } catch (error) {
+        console.error('Fehler beim Abrufen des Request Digest:', error);
+        throw error;
+      }
+    }
+
+    // Funktion zum Ermitteln des Listen-Namens
+    function getListName() {
+      // Prüfe ob ein custom List Path vom Skript-Editor definiert wurde
+      if (window.customAnsprechpersonenListPath) {
+        return window.customAnsprechpersonenListPath;
+      }
+      // Fallback auf Standard-Namen
+      return 'Ansprechpersonen';
+    }
+
+    // Funktion zum Ermitteln der Site-URL (für Cross-Site-Zugriffe)
+    function getSiteUrl() {
+      // Prüfe ob eine custom Site URL vom Skript-Editor definiert wurde
+      if (window.customAnsprechpersonenSiteUrl) {
+        return window.customAnsprechpersonenSiteUrl;
+      }
+      // Fallback auf aktuelle Site
+      return _spPageContextInfo.webAbsoluteUrl;
+    }
+
+    // Funktion zum Abrufen der verfügbaren Kategorien
+    async function getAvailableCategories() {
+      try {
+        const listName = getListName();
+        const siteUrl = getSiteUrl();
+        const response = await fetch(`${siteUrl}/_api/web/lists/getbytitle('${listName}')/fields/getbytitle('Kategorie')`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose'
+          },
+          credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Prüfe ob es ein Choice-Feld ist und Optionen hat
+        if (data.d.Choices && data.d.Choices.results) {
+          return data.d.Choices.results;
+        }
+        
+        return [];
+      } catch (error) {
+        console.error('Fehler beim Abrufen der Kategorien:', error);
+        return [];
+      }
+    }
+
+    // Funktion zum Abrufen der Ansprechpersonen
+    async function getContacts() {
+      try {
+        const listName = getListName();
+        const siteUrl = getSiteUrl();
+        const response = await fetch(`${siteUrl}/_api/web/lists/getbytitle('${listName}')/items?$select=ID,Title,Sortierung,Bild,Funktion,Kategorie,Telefonnummer,Handynummer,Mail&$orderby=Sortierung`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json;odata=verbose',
+            'Content-Type': 'application/json;odata=verbose'
+          },
+          credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.d.results;
+      } catch (error) {
+        console.error('Fehler beim Abrufen der Ansprechpersonen:', error);
+        throw error;
+      }
+    }
+
+    // Funktion zum Extrahieren der Bild-URL
+    function getImageUrl(bildField) {
+      if (!bildField) return fallbackImage;
+      
+      // Debug-Ausgabe um zu sehen was zurückkommt
+      console.log('Bild-Feld Typ:', typeof bildField);
+      console.log('Bild-Feld Inhalt:', bildField);
+      
+      try {
+        // SharePoint "Link oder Bild" Feld kann verschiedene Strukturen haben
+        if (typeof bildField === 'string' && bildField.trim()) {
+          // Falls es ein JSON-String ist
+          try {
+            const bildData = JSON.parse(bildField);
+            console.log('Geparste Bild-Daten:', bildData);
+            return bildData.Url || bildData.url || bildData.serverUrl || bildData.serverRelativeUrl || fallbackImage;
+          } catch (parseError) {
+            // Falls es ein einfacher URL-String ist
+            console.log('Verwende String direkt als URL:', bildField);
+            return bildField;
+          }
+        }
+        // Falls es bereits ein Objekt ist
+        else if (typeof bildField === 'object' && bildField !== null) {
+          console.log('Bild-Feld ist Objekt:', bildField);
+          return bildField.Url || bildField.url || bildField.serverUrl || bildField.serverRelativeUrl || fallbackImage;
+        }
+      } catch (error) {
+        console.error('Fehler beim Verarbeiten des Bild-Felds:', error);
+      }
+      
+      return fallbackImage;
+    }
+
+    // Funktion zum Erstellen einer Kontakt-Karte
+    function createContactCard(contact) {
+      const card = document.createElement("div");
+      card.className = "contact-card";
+
+      const imageUrl = getImageUrl(contact.Bild);
+      const name = contact.Title || 'Unbekannt';
+      const role = contact.Funktion || '';
+      const email = contact.Mail || '';
+      const phone = contact.Telefonnummer || '';
+      const mobile = contact.Handynummer || '';
+
+      // Erstelle Contact Details HTML
+      let detailsHTML = '';
+      
+      if (email) {
+        detailsHTML += `<div><img src="https://vorarlberg.polizei.intra.gv.at/PublishingImages/icons/envelope-svgrepo-com.svg" alt="E-Mail" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"> <a href="mailto:${email}">${email}</a></div>`;
+      }
+      
+      if (phone) {
+        detailsHTML += `<div><img src="https://vorarlberg.polizei.intra.gv.at/PublishingImages/icons/phone-svgrepo-com.svg" alt="Telefon" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"> ${phone}</div>`;
+      }
+      
+      if (mobile) {
+        detailsHTML += `<div><img src="https://vorarlberg.polizei.intra.gv.at/PublishingImages/icons/mobile-svgrepo-com.svg" alt="Mobil" style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;"> ${mobile}</div>`;
+      }
+
+      card.innerHTML = `
+        <div class="contact-header">
+          <img src="${imageUrl}" alt="${name}" onerror="this.src='${fallbackImage}'" />
+          <div class="contact-info">
+            <h3>${name}</h3>
+            <span>${role}</span>
+          </div>
+        </div>
+        <div class="contact-details">
+          ${detailsHTML}
+        </div>
+      `;
+
+      // Click-Handler für Expand/Collapse
+      card.querySelector('.contact-header').addEventListener('click', () => {
+        card.classList.toggle('expanded');
+      });
+
+      return card;
+    }
+
+    // Funktion zum Erstellen eines Department-Headers
+    function createDepartmentHeader(departmentName) {
+      const header = document.createElement("div");
+      header.id = "ansprechpersonen-department-header";
+      header.innerHTML = `<h2>${departmentName}</h2>`;
+      return header;
+    }
+
+    // Funktion zum Anzeigen eines Fehlers
+    function showError(message) {
+      container.innerHTML = `<div class="error-message">${message}</div>`;
+    }
+
+    // Funktion zum Anzeigen einer Validierungsmeldung
+    function showValidationMessage(message) {
+      const validationDiv = document.createElement("div");
+      validationDiv.className = "validation-message";
+      validationDiv.textContent = message;
+      container.appendChild(validationDiv);
+    }
+
+    // Funktion zur Validierung der Kategorien-Konsistenz
+    function validateCategoryConsistency(contacts) {
+      const contactsWithRealCategory = contacts.filter(contact => 
+        contact.Kategorie && 
+        contact.Kategorie.trim() && 
+        contact.Kategorie.trim().toLowerCase() !== 'keine kategorie'
+      );
+      const contactsWithoutCategory = contacts.filter(contact => 
+        !contact.Kategorie || 
+        !contact.Kategorie.trim() || 
+        contact.Kategorie.trim().toLowerCase() === 'keine kategorie'
+      );
+      
+      // Wenn mindestens eine Person eine echte Kategorie hat, aber nicht alle
+      if (contactsWithRealCategory.length > 0 && contactsWithoutCategory.length > 0) {
+        return "Es ist mindestens eine Ansprechperson in einer Kategorie. Es müssen entweder alle oder keiner in Kategorien sein.";
+      }
+      
+      return null;
+    }
+
+    // Hauptfunktion zum Laden und Anzeigen der Daten
+    async function loadAndDisplayContacts() {
+      try {
+        // Lade Daten
+        const [availableCategories, contacts] = await Promise.all([
+          getAvailableCategories(),
+          getContacts()
+        ]);
+
+        // Leere Container
+        container.innerHTML = '';
+
+        if (!contacts || contacts.length === 0) {
+          const listName = getListName();
+          showError(`Keine Ansprechpersonen gefunden. Bitte auf dieser Seite die Vorlage Webpart-Liste "${listName}" hinzufügen und befüllen.`);
+          return;
+        }
+
+        // Validiere Kategorien-Konsistenz
+        const validationError = validateCategoryConsistency(contacts);
+
+        // Prüfe ob echte Kategorien verwendet werden (nicht "keine Kategorie")
+        const hasRealCategories = contacts.some(contact => 
+          contact.Kategorie && 
+          contact.Kategorie.trim() && 
+          contact.Kategorie.trim().toLowerCase() !== 'keine kategorie'
+        );
+
+        if (hasRealCategories && availableCategories.length > 0) {
+          // Gruppiere nach Kategorien und sortiere entsprechend der verfügbaren Kategorien-Reihenfolge
+          const contactsByCategory = {};
+          
+          // Initialisiere nur echte Kategorien (nicht "keine Kategorie")
+          availableCategories.forEach(category => {
+            if (category.toLowerCase() !== 'keine kategorie') {
+              contactsByCategory[category] = [];
+            }
+          });
+
+          // Verteile Kontakte auf echte Kategorien
+          contacts.forEach(contact => {
+            const category = contact.Kategorie && contact.Kategorie.trim();
+            if (category && 
+                category.toLowerCase() !== 'keine kategorie' && 
+                contactsByCategory[category]) {
+              contactsByCategory[category].push(contact);
+            }
+          });
+
+          // Erstelle UI für jede echte Kategorie
+          availableCategories.forEach(categoryName => {
+            if (categoryName.toLowerCase() !== 'keine kategorie') {
+              const categoryContacts = contactsByCategory[categoryName];
+              if (categoryContacts && categoryContacts.length > 0) {
+                // Sortiere innerhalb der Kategorie nach Sortierung
+                categoryContacts.sort((a, b) => (a.Sortierung || 0) - (b.Sortierung || 0));
+                
+                // Erstelle Department Header
+                container.appendChild(createDepartmentHeader(categoryName));
+                
+                // Erstelle Contact Cards
+                categoryContacts.forEach(contact => {
+                  container.appendChild(createContactCard(contact));
+                });
+              }
+            }
+          });
+        } else {
+          // Keine echten Kategorien verwendet - sortiere nur nach Sortierung
+          contacts.sort((a, b) => (a.Sortierung || 0) - (b.Sortierung || 0));
+          
+          contacts.forEach(contact => {
+            container.appendChild(createContactCard(contact));
+          });
+        }
+
+        // Zeige Validierungsmeldung an, falls erforderlich
+        if (validationError) {
+          showValidationMessage(validationError);
+        }
+
+      } catch (error) {
+        console.error('Fehler beim Laden der Ansprechpersonen:', error);
+        const listName = getListName();
+        showError(`Bitte auf dieser Seite die Vorlage Webpart-Liste "${listName}" hinzufügen und befüllen.`);
+      }
+    }
+
+    // Starte das Laden der Daten wenn die Seite geladen ist
+    if (typeof _spPageContextInfo !== 'undefined') {
+      loadAndDisplayContacts();
+    } else {
+      // Fallback falls SharePoint-Kontext nicht verfügbar ist
+      setTimeout(() => {
+        if (typeof _spPageContextInfo !== 'undefined') {
+          loadAndDisplayContacts();
+        } else {
+          const listName = getListName();
+          showError(`SharePoint-Kontext nicht verfügbar. Bitte auf dieser Seite die Vorlage Webpart-Liste "${listName}" hinzufügen und befüllen.`);
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

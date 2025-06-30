@@ -1,0 +1,342 @@
+# SharePoint Skript-Editor Codes für Header-Card-Menüs (KORRIGIERT)
+
+## Version 1 - Standard Design (header-card-menu_v1.html)
+
+```html
+<div id="header-cards-container-v1"></div>
+<script>
+// ===========================================
+// KONFIGURATION (Optional)
+// ===========================================
+// Hier können Sie optional einen benutzerdefinierten Pfad zur SharePoint-Liste eintragen
+// 
+// Möglichkeiten:
+// 1. Leer lassen für Standard "zz_config_startseite_top"
+// 2. Nur Listen-Name: "meine_config_liste" 
+// 3. Vollständige SharePoint-URL: "https://vorarlberg.polizei.intra.gv.at/Lists/zz_config_startseite_top/AllItems.aspx"
+//    (Der Listen-Name wird automatisch aus der URL extrahiert)
+
+var customListPath = ""; // Hier eintragen oder leer lassen für Standard
+
+// Funktion zum Extrahieren des Listen-Namens aus einer SharePoint-URL
+function extractListNameFromUrl(input) {
+    if (!input || input.trim() === "") {
+        return "";
+    }
+    
+    const trimmedInput = input.trim();
+    
+    // Prüfe ob es eine URL ist (enthält http/https)
+    if (trimmedInput.toLowerCase().includes('http')) {
+        try {
+            const url = new URL(trimmedInput);
+            
+            // Extrahiere Listen-Name aus SharePoint-URL
+            // Pattern: .../Lists/LISTENNAME/... oder .../lists/LISTENNAME/...
+            const urlPattern = /\/[Ll]ists\/([^\/]+)/;
+            const match = url.pathname.match(urlPattern);
+            
+            if (match && match[1]) {
+                const listName = match[1];
+                
+                // Erweiterte Funktionalität: Cross-Site-Zugriff
+                // Extrahiere Site-Pfad für Cross-Site-Listen-Zugriffe
+                const pathParts = url.pathname.split('/Lists/')[0];
+                if (pathParts && pathParts !== '' && !pathParts.startsWith('/_')) {
+                    // Es ist eine Unter-Site - speichere vollständigen Kontext
+                    const fullSiteUrl = url.origin + pathParts;
+                    window.customAppSiteUrl = fullSiteUrl;
+                    console.log('Cross-Site-Zugriff aktiviert. Site-URL:', fullSiteUrl);
+                    console.log('Listen-Name aus URL extrahiert:', listName);
+                } else {
+                    // Standard Site-Root
+                    console.log('Listen-Name aus URL extrahiert (gleiche Site):', listName);
+                }
+                
+                return listName;
+            } else {
+                console.warn('Konnte Listen-Name nicht aus URL extrahieren:', trimmedInput);
+                return "";
+            }
+        } catch (error) {
+            console.error('Fehler beim Extrahieren des Listen-Namens aus URL:', error);
+            return "";
+        }
+    } else {
+        // Es ist bereits ein Listen-Name
+        console.log('Listen-Name direkt verwendet:', trimmedInput);
+        return trimmedInput;
+    }
+}
+
+// URL zu Ihrer header-card-menu_v1.html Datei (anpassen!)
+var scriptUrl = "/sites/apps/header-card-menu_v1.html";
+
+// Laden und Einfügen des Inhalts
+fetch(scriptUrl)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        document.getElementById('header-cards-container-v1').innerHTML = html;
+        
+        // Prüfen ob ein custom List Path definiert ist und Listen-Name extrahieren
+        if (customListPath && customListPath.trim() !== "") {
+            const extractedListName = extractListNameFromUrl(customListPath);
+            if (extractedListName) {
+                window.customAppListPath = extractedListName;
+                console.log('Verwende Listen-Name:', extractedListName);
+            } else {
+                console.warn('Konnte keinen gültigen Listen-Namen ermitteln. Verwende Standard.');
+            }
+        }
+        
+        // JavaScript aus dem geladenen HTML ausführen
+        var scripts = document.getElementById('header-cards-container-v1').getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+            eval(scripts[i].innerHTML);
+        }
+    })
+    .catch(error => {
+        console.error('Header-Cards App Load Error:', error);
+        document.getElementById('header-cards-container-v1').innerHTML = `
+            <div style="padding:15px;background:#fee;border:1px solid #fcc;border-radius:5px;color:#c00;">
+                <strong>Konfigurationsfehler:</strong> Header-Cards App konnte nicht geladen werden<br>
+                <small>Fehler: ${error.message}<br>
+                Prüfen Sie die App-URL: ${scriptUrl}</small>
+            </div>
+        `;
+    });
+</script>
+```
+
+---
+
+## Version 2 - Modern Glasmorphism Design (header_card-menu_v2.html)
+
+```html
+<div id="header-cards-container-v2"></div>
+<script>
+// ===========================================
+// KONFIGURATION (Optional)
+// ===========================================
+var customListPath = ""; // Leer lassen für Standard "zz_config_startseite_top"
+
+// Funktion zum Extrahieren des Listen-Namens aus einer SharePoint-URL
+function extractListNameFromUrl(input) {
+    if (!input || input.trim() === "") {
+        return "";
+    }
+    
+    const trimmedInput = input.trim();
+    
+    if (trimmedInput.toLowerCase().includes('http')) {
+        try {
+            const url = new URL(trimmedInput);
+            const urlPattern = /\/[Ll]ists\/([^\/]+)/;
+            const match = url.pathname.match(urlPattern);
+            
+            if (match && match[1]) {
+                const listName = match[1];
+                const pathParts = url.pathname.split('/Lists/')[0];
+                if (pathParts && pathParts !== '' && !pathParts.startsWith('/_')) {
+                    const fullSiteUrl = url.origin + pathParts;
+                    window.customAppSiteUrl = fullSiteUrl;
+                    console.log('Cross-Site-Zugriff aktiviert. Site-URL:', fullSiteUrl);
+                }
+                return listName;
+            }
+        } catch (error) {
+            console.error('Fehler beim Extrahieren des Listen-Namens:', error);
+        }
+    } else {
+        return trimmedInput;
+    }
+    return "";
+}
+
+// URL zu Ihrer header_card-menu_v2.html Datei (anpassen!)
+var scriptUrl = "/sites/apps/header_card-menu_v2.html";
+
+// Laden und Einfügen des Inhalts
+fetch(scriptUrl)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        document.getElementById('header-cards-container-v2').innerHTML = html;
+        
+        if (customListPath && customListPath.trim() !== "") {
+            const extractedListName = extractListNameFromUrl(customListPath);
+            if (extractedListName) {
+                window.customAppListPath = extractedListName;
+                console.log('Verwende Listen-Name:', extractedListName);
+            }
+        }
+        
+        // JavaScript aus dem geladenen HTML ausführen
+        var scripts = document.getElementById('header-cards-container-v2').getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+            eval(scripts[i].innerHTML);
+        }
+    })
+    .catch(error => {
+        console.error('Header-Cards App Load Error:', error);
+        document.getElementById('header-cards-container-v2').innerHTML = `
+            <div style="padding:20px;background:rgba(255,255,255,0.9);border:1px solid rgba(204,204,204,0.5);border-radius:15px;color:#c00;backdrop-filter:blur(10px);">
+                <strong>Konfigurationsfehler:</strong> Moderne Header-Cards App konnte nicht geladen werden<br>
+                <small>Fehler: ${error.message}<br>
+                Prüfen Sie die App-URL: ${scriptUrl}</small>
+            </div>
+        `;
+    });
+</script>
+```
+
+---
+
+## Version 3 - Minimal Grid Design (header-card-menu_v3.html)
+
+```html
+<div id="header-cards-container-v3"></div>
+<script>
+// ===========================================
+// KONFIGURATION (Optional)
+// ===========================================
+var customListPath = ""; // Leer lassen für Standard "zz_config_startseite_top"
+
+// Funktion zum Extrahieren des Listen-Namens aus einer SharePoint-URL
+function extractListNameFromUrl(input) {
+    if (!input || input.trim() === "") {
+        return "";
+    }
+    
+    const trimmedInput = input.trim();
+    
+    if (trimmedInput.toLowerCase().includes('http')) {
+        try {
+            const url = new URL(trimmedInput);
+            const urlPattern = /\/[Ll]ists\/([^\/]+)/;
+            const match = url.pathname.match(urlPattern);
+            
+            if (match && match[1]) {
+                const listName = match[1];
+                const pathParts = url.pathname.split('/Lists/')[0];
+                if (pathParts && pathParts !== '' && !pathParts.startsWith('/_')) {
+                    const fullSiteUrl = url.origin + pathParts;
+                    window.customAppSiteUrl = fullSiteUrl;
+                    console.log('Cross-Site-Zugriff aktiviert. Site-URL:', fullSiteUrl);
+                }
+                return listName;
+            }
+        } catch (error) {
+            console.error('Fehler beim Extrahieren des Listen-Namens:', error);
+        }
+    } else {
+        return trimmedInput;
+    }
+    return "";
+}
+
+// URL zu Ihrer header-card-menu_v3.html Datei (anpassen!)
+var scriptUrl = "/sites/apps/header-card-menu_v3.html";
+
+// Laden und Einfügen des Inhalts
+fetch(scriptUrl)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        document.getElementById('header-cards-container-v3').innerHTML = html;
+        
+        if (customListPath && customListPath.trim() !== "") {
+            const extractedListName = extractListNameFromUrl(customListPath);
+            if (extractedListName) {
+                window.customAppListPath = extractedListName;
+                console.log('Verwende Listen-Name:', extractedListName);
+            }
+        }
+        
+        // JavaScript aus dem geladenen HTML ausführen
+        var scripts = document.getElementById('header-cards-container-v3').getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+            eval(scripts[i].innerHTML);
+        }
+    })
+    .catch(error => {
+        console.error('Header-Cards App Load Error:', error);
+        document.getElementById('header-cards-container-v3').innerHTML = `
+            <div style="padding:20px;background:#fff;border:1px solid #e74c3c;border-left:4px solid #e74c3c;border-radius:16px;color:#333;box-shadow:0 4px 12px rgba(231,76,60,0.1);">
+                <div style="color:#e74c3c;font-size:1.1rem;font-weight:600;margin-bottom:8px;">Konfigurationsfehler</div>
+                <div style="color:#555;font-size:0.9rem;">
+                    Minimale Header-Cards App konnte nicht geladen werden<br>
+                    <strong>Fehler:</strong> ${error.message}<br>
+                    <small>Prüfen Sie die App-URL: ${scriptUrl}</small>
+                </div>
+            </div>
+        `;
+    });
+</script>
+```
+
+---
+
+## Wichtige Änderungen gegenüber der vorherigen Version:
+
+### 1. **Korrektes Container-Pattern**
+- Jede Version hat eigenen Container: `header-cards-container-v1/v2/v3`
+- HTML wird direkt in Container geladen
+
+### 2. **Richtige Script-Ausführung**
+- HTML wird zuerst geladen
+- Konfiguration wird **vor** Script-Ausführung gesetzt
+- Scripts werden manuell mit `eval()` ausgeführt
+
+### 3. **Cross-Site-Funktionalität**
+- Automatische Erkennung von Site-URLs aus vollständigen SharePoint-URLs
+- `window.customAppSiteUrl` wird automatisch gesetzt
+
+### 4. **Robuste Fehlerbehandlung**
+- HTTP-Status-Prüfung
+- Detaillierte Fehlermeldungen mit App-URL
+- Console-Logging für Debugging
+
+---
+
+## Deployment-Anweisungen:
+
+### 1. HTML-Dateien hochladen
+Laden Sie die drei Dateien in eine SharePoint-Dokumentenbibliothek hoch:
+- `header-card-menu_v1.html`
+- `header_card-menu_v2.html` 
+- `header-card-menu_v3.html`
+
+### 2. Skript-Editor anpassen
+1. **scriptUrl** anpassen: Pfad zu Ihrer Dokumentenbibliothek
+2. **customListPath** setzen: Listen-Name oder vollständige URL
+3. Code in SharePoint Skript-Editor-Webpart einfügen
+
+### 3. Konfigurationsbeispiele
+```javascript
+// Lokale Liste
+var customListPath = "meine_startseite_config";
+
+// Cross-Site-Liste mit vollständiger URL
+var customListPath = "https://vorarlberg.polizei.intra.gv.at/fbinfo/lka/OSEneu/Lists/zz_config_startseite_top/AllItems.aspx";
+
+// Dokumentenbibliothek-Pfad
+var scriptUrl = "/sites/meine-site/Freigegebene Dokumente/Apps/header-card-menu_v1.html";
+```
+
+---
+
+**Diese korrigierte Version folgt dem bewährten Pattern des Ansprechpersonen-Beispiels und sollte korrekt funktionieren.**
