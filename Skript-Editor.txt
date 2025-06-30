@@ -1,0 +1,196 @@
+# SharePoint Skript-Editor Codes für Header-Card-Menüs
+
+## Version 1 - Standard Design (header-card-menu_v1.html)
+
+```html
+<div id="header-cards-container">Lade Header-Cards...</div>
+<script>
+// Konfiguration - Diese Werte anpassen:
+window.customAppListPath = "zz_config_startseite_top";  // SharePoint-Listenname
+window.customAppSiteUrl = "";  // Optional: Andere Site-URL, leer lassen für aktuelle Site
+window.customAppSettings = {};  // Zusätzliche Einstellungen falls benötigt
+
+// App laden
+fetch('/sites/apps/header-card-menu_v1.html')
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    return res.text();
+  })
+  .then(html => {
+    // HTML direkt einfügen
+    document.getElementById('header-cards-container').innerHTML = html;
+    
+    // App-Konfiguration übertragen
+    if (window.customAppListPath && typeof window !== 'undefined') {
+      // Warte kurz bis das Script geladen ist
+      setTimeout(() => {
+        if (window.loadCards) {
+          window.loadCards();
+        }
+      }, 100);
+    }
+  })
+  .catch(err => {
+    console.error('Header-Cards App Load Error:', err);
+    document.getElementById('header-cards-container').innerHTML = `
+      <div style="padding:15px;background:#fee;border:1px solid #fcc;border-radius:5px;color:#c00;">
+        <strong>Konfigurationsfehler:</strong> Header-Cards App konnte nicht geladen werden<br>
+        <small>Fehler: ${err.message}<br>
+        Prüfen Sie die App-URL und Berechtigung zur Dokumentenbibliothek</small>
+      </div>
+    `;
+  });
+</script>
+```
+
+---
+
+## Version 2 - Modern Glasmorphism (header_card-menu_v2.html)
+
+```html
+<div id="header-cards-container-v2">Lade moderne Header-Cards...</div>
+<script>
+// Konfiguration - Diese Werte anpassen:
+window.customAppListPath = "zz_config_startseite_top";  // SharePoint-Listenname
+window.customAppSiteUrl = "";  // Optional: Andere Site-URL, leer lassen für aktuelle Site
+window.customAppSettings = {};  // Zusätzliche Einstellungen falls benötigt
+
+// App laden
+fetch('/sites/apps/header_card-menu_v2.html')
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    return res.text();
+  })
+  .then(html => {
+    // HTML direkt einfügen
+    document.getElementById('header-cards-container-v2').innerHTML = html;
+    
+    // App-Konfiguration übertragen
+    if (window.customAppListPath && typeof window !== 'undefined') {
+      // Warte kurz bis das Script geladen ist
+      setTimeout(() => {
+        if (window.loadCards) {
+          window.loadCards();
+        }
+      }, 100);
+    }
+  })
+  .catch(err => {
+    console.error('Header-Cards App Load Error:', err);
+    document.getElementById('header-cards-container-v2').innerHTML = `
+      <div style="padding:20px;background:rgba(255,255,255,0.9);border:1px solid rgba(204,204,204,0.5);border-radius:15px;color:#c00;backdrop-filter:blur(10px);">
+        <strong>Konfigurationsfehler:</strong> Moderne Header-Cards App konnte nicht geladen werden<br>
+        <small>Fehler: ${err.message}<br>
+        Prüfen Sie die App-URL und Berechtigung zur Dokumentenbibliothek</small>
+      </div>
+    `;
+  });
+</script>
+```
+
+---
+
+## Version 3 - Minimal Grid Design (header-card-menu_v3.html)
+
+```html
+<div id="header-cards-container-v3">Lade minimale Header-Cards...</div>
+<script>
+// Konfiguration - Diese Werte anpassen:
+window.customAppListPath = "zz_config_startseite_top";  // SharePoint-Listenname
+window.customAppSiteUrl = "";  // Optional: Andere Site-URL, leer lassen für aktuelle Site
+window.customAppSettings = {};  // Zusätzliche Einstellungen falls benötigt
+
+// App laden
+fetch('/sites/apps/header-card-menu_v3.html')
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    return res.text();
+  })
+  .then(html => {
+    // HTML direkt einfügen
+    document.getElementById('header-cards-container-v3').innerHTML = html;
+    
+    // App-Konfiguration übertragen
+    if (window.customAppListPath && typeof window !== 'undefined') {
+      // Warte kurz bis das Script geladen ist
+      setTimeout(() => {
+        if (window.loadCards) {
+          window.loadCards();
+        }
+      }, 100);
+    }
+  })
+  .catch(err => {
+    console.error('Header-Cards App Load Error:', err);
+    document.getElementById('header-cards-container-v3').innerHTML = `
+      <div style="padding:20px;background:#fff;border:1px solid #e74c3c;border-left:4px solid #e74c3c;border-radius:16px;color:#333;box-shadow:0 4px 12px rgba(231,76,60,0.1);">
+        <div style="color:#e74c3c;font-size:1.1rem;font-weight:600;margin-bottom:8px;">Konfigurationsfehler</div>
+        <div style="color:#555;font-size:0.9rem;">
+          Minimale Header-Cards App konnte nicht geladen werden<br>
+          <strong>Fehler:</strong> ${err.message}<br>
+          <small>Prüfen Sie die App-URL und Berechtigung zur Dokumentenbibliothek</small>
+        </div>
+      </div>
+    `;
+  });
+</script>
+```
+
+---
+
+## Konfigurationsoptionen
+
+### Basis-Konfiguration
+```javascript
+// Standard (lokale Liste)
+window.customAppListPath = "zz_config_startseite_top";
+
+// Cross-Site (andere SharePoint-Site)
+window.customAppSiteUrl = "https://vorarlberg.polizei.intra.gv.at/andere-abteilung";
+window.customAppListPath = "meine_config_liste";
+
+// Cross-Site via vollständige URL
+window.customAppListPath = "https://vorarlberg.polizei.intra.gv.at/fbinfo/lka/OSEneu/Lists/zz_config_startseite_top";
+```
+
+### Erweiterte Einstellungen
+```javascript
+window.customAppSettings = {
+    theme: "dark",           // Zusätzliche Theme-Optionen
+    maxCards: 6,            // Maximale Anzahl Cards
+    showAnimations: true,   // Animationen ein/aus
+    iconSize: "large"       // Icon-Größe
+};
+```
+
+---
+
+## Deployment-Anweisungen
+
+### 1. App-Dateien hochladen
+- Alle drei HTML-Dateien in SharePoint-Dokumentenbibliothek `/sites/apps/` hochladen
+- Alternativ: Zentrale Dokumentenbibliothek verwenden
+
+### 2. Skript-Editor verwenden
+1. Gewünschten Code aus dieser Datei kopieren
+2. In SharePoint-Seite: **Bearbeiten** → **Webpart einfügen** → **Skript-Editor**
+3. Code einfügen und **customAppListPath** anpassen
+4. Optional: **customAppSiteUrl** für Cross-Site-Zugriff setzen
+5. Speichern
+
+### 3. SharePoint-Liste vorbereiten
+Stelle sicher, dass die Liste folgende Spalten hat:
+- **CardPosition** (Zahl) - Sortierung
+- **Icon** (Hyperlink oder Bild) - Icon-URL
+- **Title** (Einzeiliger Text) - Titel der Karte
+- **Informationen** (Mehrzeiliger Text) - Aufzählungspunkte
+- **Hyperlink** (Hyperlink) - Link-Ziel
+
+### 4. Test & Troubleshooting
+- Browser-Konsole für Fehlermeldungen prüfen
+- Berechtigung zur App-Dokumentenbibliothek sicherstellen
+- Liste und Spalten-Namen exakt prüfen
+
+---
+
+**Tipp:** Verwende verschiedene Container-IDs (`header-cards-container`, `header-cards-container-v2`, `header-cards-container-v3`) um mehrere Versionen auf einer Seite zu testen.

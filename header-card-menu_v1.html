@@ -113,12 +113,17 @@
 <body>
   <div class="card-row" id="cardRow"></div>
   <script>
-    // SharePoint REST API URL (aus link.txt)
-    const listUrl = "https://vorarlberg.polizei.intra.gv.at/fbinfo/lka/OSEneu/Lists/zz_config_startseite_top";
+    // Konfiguration aus Wrapper oder Fallback
+    const config = {
+      listPath: window.customAppListPath || 'zz_config_startseite_top',
+      siteUrl: window.customAppSiteUrl || (typeof _spPageContextInfo !== "undefined" ? _spPageContextInfo.webAbsoluteUrl : ''),
+      settings: window.customAppSettings || {}
+    };
+
     // Felder, die abgefragt werden sollen
     const fields = [
       "CardPosition",
-      "Icon",
+      "Icon", 
       "Title",
       "Informationen",
       "Hyperlink"
@@ -126,11 +131,18 @@
 
     // Hilfsfunktion: SharePoint REST-API-URL für List Items
     function getItemsUrl() {
-      const base = (typeof _spPageContextInfo !== "undefined" && _spPageContextInfo.webAbsoluteUrl)
-        ? _spPageContextInfo.webAbsoluteUrl
-        : listUrl.split('/Lists/')[0];
-      // Dynamisch, falls _spPageContextInfo verfügbar ist
-      return `${base}/_api/web/lists/GetByTitle('zz_config_startseite_top')/items?$select=${fields.join(',')}&$orderby=CardPosition`;
+      // Cross-Site URL-Parsing
+      if (config.listPath.startsWith('http')) {
+        const siteMatch = config.listPath.match(/https?:\/\/[^\/]+\/[^\/]+/);
+        const listMatch = config.listPath.match(/Lists\/([^\/]+)/);
+        if (siteMatch && listMatch) {
+          return `${siteMatch[0]}/_api/web/lists/getbytitle('${listMatch[1]}')/items?$select=${fields.join(',')}&$orderby=CardPosition`;
+        }
+      }
+      
+      // Standard: Lokale oder Cross-Site Liste
+      const baseUrl = config.siteUrl || (typeof _spPageContextInfo !== "undefined" ? _spPageContextInfo.webAbsoluteUrl : '');
+      return `${baseUrl}/_api/web/lists/GetByTitle('${config.listPath}')/items?$select=${fields.join(',')}&$orderby=CardPosition`;
     }
 
     // Daten holen und Cards rendern
@@ -149,7 +161,7 @@
         const items = data.d && data.d.results ? data.d.results : [];
         renderCards(items);
       } catch (err) {
-        document.getElementById('cardRow').innerHTML = `<div style="color:#c00;font-weight:bold;">Fehler beim Laden der Cards: ${err.message}</div>`;
+        document.getElementById('cardRow').innerHTML = `<div style="color:#c00;font-weight:bold;">Fehler beim Laden der Cards: ${err.message}<br><small>Liste: ${config.listPath} | Site: ${config.siteUrl || 'Aktuelle Site'}</small></div>`;
       }
     }
 
