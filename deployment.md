@@ -322,4 +322,126 @@ window.debugMode = true;
 
 ---
 
+## 🚀 Fortgeschrittene Lösung: Namespace-Pattern für mehrere Apps
+
+### Universal App-Loader mit Konflikvermeidung
+
+Für **mehrere Apps auf einer Seite** verwenden Sie das Namespace-Pattern aus `wrapper.txt`:
+
+```html
+<!-- Container für Apps -->
+<div id="app-ansprechpersonen"></div>
+<div id="app-header-cards-standard"></div>
+<div id="app-weitere-app"></div>
+
+<script>
+/**
+ * SharePoint Universal App-Loader
+ * Verhindert Konflikte zwischen Apps
+ */
+class SharePointAppLoader {
+    constructor() {
+        this.apps = new Map();
+        this.loadedApps = new Set();
+    }
+    
+    registerApp(appId, config) {
+        this.apps.set(appId, {
+            containerId: config.containerId,
+            scriptUrl: config.scriptUrl,
+            listPath: config.listPath || '',
+            siteUrl: config.siteUrl || '',
+            configVarName: config.configVarName || `custom${appId}ListPath`,
+            settings: config.settings || {},
+            errorTitle: config.errorTitle || appId,
+            loaded: false
+        });
+    }
+    
+    async loadApp(appId) {
+        const app = this.apps.get(appId);
+        if (!app || this.loadedApps.has(appId)) return;
+        
+        const container = document.getElementById(app.containerId);
+        if (!container) return;
+        
+        try {
+            const response = await fetch(app.scriptUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const html = await response.text();
+            container.innerHTML = html;
+            
+            // App-spezifische Konfiguration setzen
+            if (app.listPath) window[app.configVarName] = app.listPath;
+            if (app.siteUrl) window[app.configVarName.replace('ListPath', 'SiteUrl')] = app.siteUrl;
+            
+            // Scripts ausführen
+            const scripts = container.getElementsByTagName('script');
+            for (let i = 0; i < scripts.length; i++) {
+                eval(scripts[i].innerHTML);
+            }
+            
+            this.loadedApps.add(appId);
+            console.log(`✅ App ${appId} geladen`);
+            
+        } catch (error) {
+            console.error(`❌ App ${appId} Fehler:`, error);
+            container.innerHTML = `<div style="padding:15px;background:#fee;border:1px solid #fcc;border-radius:5px;color:#c00;">
+                <strong>${app.errorTitle} Fehler:</strong> ${error.message}
+            </div>`;
+        }
+    }
+    
+    async loadAllApps() {
+        for (const [appId] of this.apps) {
+            await this.loadApp(appId);
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+}
+
+// App-Loader konfigurieren
+const appLoader = new SharePointAppLoader();
+
+// Apps registrieren
+appLoader.registerApp('ansprechpersonen', {
+    containerId: 'app-ansprechpersonen',
+    scriptUrl: '/sites/apps/ansprechpersonen.html',
+    listPath: 'Ansprechpersonen',
+    configVarName: 'customAnsprechpersonenListPath',
+    errorTitle: 'Ansprechpersonen'
+});
+
+appLoader.registerApp('headerCards', {
+    containerId: 'app-header-cards-standard',
+    scriptUrl: '/sites/apps/header-card-menu_v1.html',
+    listPath: 'zz_config_startseite_top',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Header-Cards'
+});
+
+// Alle Apps laden
+appLoader.loadAllApps();
+</script>
+```
+
+### Vorteile des Namespace-Patterns:
+
+✅ **Keine Konflikte** zwischen Apps
+✅ **Zentrale Konfiguration** aller Apps
+✅ **Automatisches Error Handling**
+✅ **Loading-Anzeigen** für bessere UX
+✅ **Debug-Informationen** in Konsole
+✅ **Cross-Site-Unterstützung** eingebaut
+
+### Verwendung:
+
+1. **Vollständige Konfiguration**: Siehe `wrapper.txt` für drei Header-Card-Menü Varianten
+2. **Einzelne Apps**: Kopiere nur benötigte App-Registrierungen
+3. **Cross-Site**: Setze `siteUrl` Parameter für andere SharePoint-Sites
+4. **Debugging**: Öffne Browser-Konsole für detaillierte Logs
+
+---
+
 **🎯 Dieses Dokument für schnelle Copy & Paste Deployments optimiert!**

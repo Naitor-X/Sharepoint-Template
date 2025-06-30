@@ -1,0 +1,399 @@
+# SharePoint App-Wrapper mit Namespace-Pattern
+
+## 🚀 Universal App-Loader für Header-Card-Menüs
+
+### Vollständiger Wrapper-Code für SharePoint Skript-Editor
+
+```html
+<!-- Container für die drei Header-Card-Menü Varianten -->
+<div id="app-header-cards-standard"></div>
+<div id="app-header-cards-glasmorphism"></div>
+<div id="app-header-cards-minimal"></div>
+
+<script>
+/**
+ * SharePoint Universal App-Loader mit Namespace-Pattern
+ * Verhindert Konflikte zwischen mehreren Apps auf einer Seite
+ */
+class SharePointAppLoader {
+    constructor() {
+        this.apps = new Map();
+        this.loadedApps = new Set();
+    }
+    
+    /**
+     * App registrieren
+     * @param {string} appId - Eindeutige App-ID
+     * @param {object} config - App-Konfiguration
+     */
+    registerApp(appId, config) {
+        // Validierung
+        if (!config.containerId || !config.scriptUrl) {
+            console.error(`App ${appId}: containerId und scriptUrl sind erforderlich`);
+            return;
+        }
+        
+        this.apps.set(appId, {
+            containerId: config.containerId,
+            scriptUrl: config.scriptUrl,
+            listPath: config.listPath || '',
+            siteUrl: config.siteUrl || '',
+            configVarName: config.configVarName || `custom${appId}ListPath`,
+            settings: config.settings || {},
+            errorTitle: config.errorTitle || appId,
+            loaded: false
+        });
+        
+        console.log(`App ${appId} registriert:`, config);
+    }
+    
+    /**
+     * Einzelne App laden
+     * @param {string} appId - App-ID zum Laden
+     */
+    async loadApp(appId) {
+        const app = this.apps.get(appId);
+        if (!app) {
+            console.error(`App ${appId} ist nicht registriert`);
+            return;
+        }
+        
+        if (this.loadedApps.has(appId)) {
+            console.log(`App ${appId} bereits geladen`);
+            return;
+        }
+        
+        const container = document.getElementById(app.containerId);
+        if (!container) {
+            console.error(`Container ${app.containerId} für App ${appId} nicht gefunden`);
+            return;
+        }
+        
+        // Loading-Anzeige
+        container.innerHTML = `
+            <div style="padding:15px;text-align:center;background:#f4f8fb;border-radius:10px;color:#104166;">
+                <div style="display:inline-block;width:20px;height:20px;border:2px solid #104166;border-top:2px solid transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:10px;"></div>
+                Lade ${app.errorTitle}...
+            </div>
+            <style>
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+        `;
+        
+        try {
+            console.log(`Lade App ${appId} von ${app.scriptUrl}`);
+            
+            const response = await fetch(app.scriptUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const html = await response.text();
+            container.innerHTML = html;
+            
+            // App-spezifische Konfiguration setzen (VOR Script-Ausführung!)
+            this.setAppConfiguration(app);
+            
+            // JavaScript aus geladenem HTML ausführen
+            this.executeAppScripts(app.containerId, appId);
+            
+            this.loadedApps.add(appId);
+            app.loaded = true;
+            
+            console.log(`✅ App ${appId} erfolgreich geladen`);
+            
+        } catch (error) {
+            console.error(`❌ Fehler beim Laden von App ${appId}:`, error);
+            this.showAppError(app, error.message);
+        }
+    }
+    
+    /**
+     * App-spezifische Konfiguration setzen
+     * @param {object} app - App-Konfiguration
+     */
+    setAppConfiguration(app) {
+        // Listen-Konfiguration
+        if (app.listPath) {
+            window[app.configVarName] = app.listPath;
+            console.log(`Setze ${app.configVarName} = ${app.listPath}`);
+        }
+        
+        // Site-URL für Cross-Site-Zugriff
+        if (app.siteUrl) {
+            const siteVarName = app.configVarName.replace('ListPath', 'SiteUrl');
+            window[siteVarName] = app.siteUrl;
+            console.log(`Setze ${siteVarName} = ${app.siteUrl}`);
+        }
+        
+        // Erweiterte Einstellungen
+        if (Object.keys(app.settings).length > 0) {
+            const settingsVarName = app.configVarName.replace('ListPath', 'Settings');
+            window[settingsVarName] = app.settings;
+            console.log(`Setze ${settingsVarName} =`, app.settings);
+        }
+    }
+    
+    /**
+     * JavaScript aus geladenem HTML ausführen
+     * @param {string} containerId - Container-ID
+     * @param {string} appId - App-ID für Logging
+     */
+    executeAppScripts(containerId, appId) {
+        const container = document.getElementById(containerId);
+        const scripts = container.getElementsByTagName('script');
+        
+        console.log(`Führe ${scripts.length} Scripts für App ${appId} aus`);
+        
+        for (let i = 0; i < scripts.length; i++) {
+            try {
+                eval(scripts[i].innerHTML);
+            } catch (error) {
+                console.error(`Fehler beim Ausführen von Script ${i} in App ${appId}:`, error);
+            }
+        }
+    }
+    
+    /**
+     * Fehleranzeige für App
+     * @param {object} app - App-Konfiguration
+     * @param {string} message - Fehlermeldung
+     */
+    showAppError(app, message) {
+        const container = document.getElementById(app.containerId);
+        container.innerHTML = `
+            <div style="padding:20px;background:#fff;border-left:4px solid #e74c3c;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);color:#333;">
+                <div style="color:#e74c3c;font-size:1.1rem;font-weight:600;margin-bottom:8px;">
+                    ❌ ${app.errorTitle} konnte nicht geladen werden
+                </div>
+                <div style="color:#555;font-size:0.9rem;margin-bottom:12px;">
+                    <strong>Fehler:</strong> ${message}
+                </div>
+                <div style="background:#f8f9fa;padding:10px;border-radius:5px;font-size:0.8rem;color:#666;">
+                    <div><strong>App-URL:</strong> ${app.scriptUrl}</div>
+                    <div><strong>Container:</strong> ${app.containerId}</div>
+                    <div><strong>Liste:</strong> ${app.listPath || 'Nicht konfiguriert'}</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Alle registrierten Apps laden
+     */
+    async loadAllApps() {
+        console.log(`Lade alle ${this.apps.size} registrierten Apps...`);
+        
+        for (const [appId] of this.apps) {
+            await this.loadApp(appId);
+            // Kurze Pause zwischen Apps um Konflikte zu vermeiden
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.log(`✅ Alle Apps geladen. Erfolgreich: ${this.loadedApps.size}/${this.apps.size}`);
+    }
+    
+    /**
+     * App-Status anzeigen
+     */
+    getStatus() {
+        const status = {
+            registered: this.apps.size,
+            loaded: this.loadedApps.size,
+            apps: {}
+        };
+        
+        for (const [appId, app] of this.apps) {
+            status.apps[appId] = {
+                loaded: this.loadedApps.has(appId),
+                config: {
+                    containerId: app.containerId,
+                    scriptUrl: app.scriptUrl,
+                    listPath: app.listPath
+                }
+            };
+        }
+        
+        return status;
+    }
+}
+
+// ===========================================
+// APP-KONFIGURATION (Hier anpassen!)
+// ===========================================
+
+// App-Loader initialisieren
+const appLoader = new SharePointAppLoader();
+
+// *** STANDARD HEADER-CARDS (Version 1) ***
+appLoader.registerApp('headerCardsStandard', {
+    containerId: 'app-header-cards-standard',
+    scriptUrl: '/sites/apps/header-card-menu_v1.html',
+    listPath: 'zz_config_startseite_top',
+    siteUrl: '', // Leer für aktuelle Site, oder z.B. 'https://andere-site.com/subsite'
+    configVarName: 'customAppListPath',
+    errorTitle: 'Standard Header-Cards',
+    settings: {
+        theme: 'standard',
+        maxCards: 6
+    }
+});
+
+// *** GLASMORPHISM HEADER-CARDS (Version 2) ***
+appLoader.registerApp('headerCardsGlasmorphism', {
+    containerId: 'app-header-cards-glasmorphism',
+    scriptUrl: '/sites/apps/header_card-menu_v2.html',
+    listPath: 'zz_config_startseite_top',
+    siteUrl: '', // Leer für aktuelle Site
+    configVarName: 'customAppListPath',
+    errorTitle: 'Glasmorphism Header-Cards',
+    settings: {
+        theme: 'glasmorphism',
+        animations: true
+    }
+});
+
+// *** MINIMAL GRID HEADER-CARDS (Version 3) ***
+appLoader.registerApp('headerCardsMinimal', {
+    containerId: 'app-header-cards-minimal',
+    scriptUrl: '/sites/apps/header-card-menu_v3.html',
+    listPath: 'zz_config_startseite_top',
+    siteUrl: '', // Leer für aktuelle Site
+    configVarName: 'customAppListPath',
+    errorTitle: 'Minimal Grid Header-Cards',
+    settings: {
+        theme: 'minimal',
+        accessibility: true
+    }
+});
+
+// ===========================================
+// APPS LADEN
+// ===========================================
+
+// Alle Apps laden
+appLoader.loadAllApps();
+
+// Optional: Status in Konsole anzeigen
+setTimeout(() => {
+    console.log('App-Loader Status:', appLoader.getStatus());
+}, 3000);
+</script>
+```
+
+---
+
+## 📋 Einzelne App-Konfigurationen (zum Kopieren)
+
+### Nur Standard Header-Cards (Version 1)
+```html
+<div id="app-header-cards-standard"></div>
+<script>
+// Verwende die SharePointAppLoader Klasse von oben...
+
+const appLoader = new SharePointAppLoader();
+
+appLoader.registerApp('headerCardsStandard', {
+    containerId: 'app-header-cards-standard',
+    scriptUrl: '/sites/apps/header-card-menu_v1.html',
+    listPath: 'zz_config_startseite_top',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Standard Header-Cards'
+});
+
+appLoader.loadApp('headerCardsStandard');
+</script>
+```
+
+### Nur Glasmorphism Header-Cards (Version 2)
+```html
+<div id="app-header-cards-glasmorphism"></div>
+<script>
+// Verwende die SharePointAppLoader Klasse von oben...
+
+const appLoader = new SharePointAppLoader();
+
+appLoader.registerApp('headerCardsGlasmorphism', {
+    containerId: 'app-header-cards-glasmorphism',
+    scriptUrl: '/sites/apps/header_card-menu_v2.html',
+    listPath: 'zz_config_startseite_top',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Glasmorphism Header-Cards'
+});
+
+appLoader.loadApp('headerCardsGlasmorphism');
+</script>
+```
+
+### Nur Minimal Grid Header-Cards (Version 3)
+```html
+<div id="app-header-cards-minimal"></div>
+<script>
+// Verwende die SharePointAppLoader Klasse von oben...
+
+const appLoader = new SharePointAppLoader();
+
+appLoader.registerApp('headerCardsMinimal', {
+    containerId: 'app-header-cards-minimal',
+    scriptUrl: '/sites/apps/header-card-menu_v3.html',
+    listPath: 'zz_config_startseite_top',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Minimal Grid Header-Cards'
+});
+
+appLoader.loadApp('headerCardsMinimal');
+</script>
+```
+
+---
+
+## 🔧 Cross-Site-Konfiguration
+
+### Mit vollständiger SharePoint-URL
+```javascript
+appLoader.registerApp('headerCardsStandard', {
+    containerId: 'app-header-cards-standard',
+    scriptUrl: '/sites/apps/header-card-menu_v1.html',
+    listPath: 'zz_config_startseite_top',
+    siteUrl: 'https://vorarlberg.polizei.intra.gv.at/fbinfo/lka/OSEneu',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Standard Header-Cards'
+});
+```
+
+### Mit unterschiedlichen Listen pro App
+```javascript
+// Standard Cards von Liste A
+appLoader.registerApp('headerCardsStandard', {
+    containerId: 'app-header-cards-standard',
+    scriptUrl: '/sites/apps/header-card-menu_v1.html',
+    listPath: 'config_hauptseite',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Hauptbereich Cards'
+});
+
+// Glasmorphism Cards von Liste B  
+appLoader.registerApp('headerCardsGlasmorphism', {
+    containerId: 'app-header-cards-glasmorphism',
+    scriptUrl: '/sites/apps/header_card-menu_v2.html',
+    listPath: 'config_spezialbereich',
+    configVarName: 'customAppListPath',
+    errorTitle: 'Spezialbereich Cards'
+});
+```
+
+---
+
+## 🎯 Vorteile des Namespace-Patterns
+
+✅ **Keine Konflikte** zwischen mehreren Apps
+✅ **Zentrale Konfiguration** aller Apps
+✅ **Automatisches Error Handling** mit detaillierten Meldungen
+✅ **Loading-Anzeigen** für bessere UX
+✅ **Debug-Informationen** in Browser-Konsole
+✅ **Flexible Konfiguration** pro App
+✅ **Cross-Site-Unterstützung** eingebaut
+
+---
+
+**🚀 Einfach anpassen, einfügen und funktioniert!**
